@@ -12,7 +12,7 @@ const double DUTY = .2;
 const byte PIN_LEDS[2] = { 2, 3 };
 const byte PIN_BUT = 4;
 const byte PIN_SPK = 9;
-const int VOL = 1000;
+int spk_vol = 512;
 
 //note names for array indices
 const byte N_C = 0, N_Cs = 1, N_D = 2, N_Ds = 3, N_E = 4, N_F = 5, N_Fs = 6,
@@ -91,22 +91,31 @@ void loop() {
 
 	//cycle tunings if button is held
 	if (button.isLongPressed()) {
-		vol.noTone();
 		digitalWrite(PIN_LEDS[0], LOW);
 		digitalWrite(PIN_LEDS[1], LOW);
-		if (!held) { //store the time the button was held in h_us
-			held = true;
-			h_us = current_us;
-		}
-		if (current_us > (h_us + TUNINGHOLD)) {
-			++tuning;
-			if (tuning >= sizeof(tunings) / sizeof(tunings[0])) {
-				tuning = 0;
+		if (speaker) {
+			++spk_vol;
+			if (spk_vol > 1023) {
+				spk_vol = 0;
 			}
-			setTuning();
-			h_us = current_us;
-			note = 5;
-			blink(tuning, PIN_LEDS[1]);
+			playTone();
+			delay(4);
+		} else {
+			if (!held) {
+				//store the time the button was held in h_us
+				h_us = current_us;
+				held = true;
+			}
+			if (current_us > (h_us + TUNINGHOLD)) {
+				++tuning;
+				if (tuning >= sizeof(tunings) / sizeof(tunings[0])) {
+					tuning = 0;
+				}
+				setTuning();
+				h_us = current_us;
+				note = 5;
+				blink(tuning, PIN_LEDS[1]);
+			}
 		}
 	}
 
@@ -118,6 +127,7 @@ void loop() {
 		}
 
 		//flash the lights based on the timings in cycle_us[]
+		//calculate the cycle timing points at the beginning of each cycle
 		if (current_us > cycle_us[3]) {
 			digitalWrite(PIN_LEDS[0], HIGH);
 			digitalWrite(PIN_LEDS[1], LOW);
@@ -150,9 +160,15 @@ void blink(byte n, byte pin) {
 
 void toggleSpeaker() {
 	speaker = !speaker;
+	playTone();
+}
+
+void playTone() {
 	if (speaker) {
-		vol.tone(PIN_SPK, freqtone, VOL);
+		Serial.println("Speaker on");
+		vol.tone(PIN_SPK, freqtone, spk_vol);
 	} else {
+		Serial.println("Speaker off");
 		vol.noTone();
 	}
 }
@@ -163,24 +179,21 @@ void nextNote() {
 		note = 0;
 	}
 	setTimings(frequencies[note] * FREQADJ);
-	freqtone = frequencies[note] * FREQADJ / 2.0;
-	Serial.println("note: " + String(note) + ", " + notes[note] + ", freq: "
-			+ String(frequencies[note], 4) + "Hz, period: " + String(period)
-			+ "us, phase: " + String(phase) + "us, lit: " + String(litTime)
-			+ "us");
+	Serial.println(
+			"note: " + String(note) + ", " + notes[note] + ", freq: "
+					+ String(frequencies[note], 4) + "Hz, period: "
+					+ String(period) + "us, phase: " + String(phase)
+					+ "us, lit: " + String(litTime) + "us");
 	blink(note, PIN_LEDS[0]);
-	if (speaker) {
-		vol.tone(PIN_SPK, freqtone, VOL);
-	} else {
-		vol.noTone();
-	}
+	playTone();
 }
 
-//calculates the lengths of the period, half-cycle phase offset, and high duty cycle in milliseconds from a given frequency in Hz
+//calculates the lengths of the period, half-cycle phase offset, and high duty cycle in microseconds from a given frequency in Hz
 void setTimings(double f) {
 	period = round(1000000.00 / f);
 	phase = round(period / 2.0);
 	litTime = round(double(phase) * DUTY);
+	freqtone = f / 2.0;
 }
 
 //Calculate note frequencies and store them in a two-dimensional array
