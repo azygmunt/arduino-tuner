@@ -3,6 +3,7 @@
 // 9/8/2017
 
 #include "OneButton.h"
+#include "Volume3.h"
 
 const double BASEFREQ = 440.0;
 const double FREQADJ = 1.004545454545; //Adjusted from 440 to a commercial tuner to compensate for arduino timing issues
@@ -11,6 +12,7 @@ const double DUTY = .2;
 const byte PIN_LEDS[2] = { 2, 3 };
 const byte PIN_BUT = 4;
 const byte PIN_SPK = 9;
+const int VOL = 1000;
 
 //note names for array indices
 const byte N_C = 0, N_Cs = 1, N_D = 2, N_Ds = 3, N_E = 4, N_F = 5, N_Fs = 6,
@@ -59,7 +61,11 @@ unsigned long cycle_us[4];
 
 //when the button was held
 unsigned long h_us;
-boolean held = true;
+
+//whether or not the button is held
+boolean held = false;
+
+//whether or not the speaker is on
 boolean speaker = false;
 
 //initialize a OneButton instance
@@ -71,12 +77,12 @@ void setup() {
 	pinMode(PIN_SPK, OUTPUT);
 	pinMode(8, OUTPUT);
 	Serial.begin(9600);
-	button.attachClick(setNote);
-	button.attachDoubleClick(setSpeaker);
+	button.attachClick(nextNote);
+	button.attachDoubleClick(toggleSpeaker);
 	freqTable();
 	setTuning();
 	note = 5;
-	setNote();
+	nextNote();
 }
 
 void loop() {
@@ -85,7 +91,7 @@ void loop() {
 
 	//cycle tunings if button is held
 	if (button.isLongPressed()) {
-		noTone(PIN_SPK);
+		vol.noTone();
 		digitalWrite(PIN_LEDS[0], LOW);
 		digitalWrite(PIN_LEDS[1], LOW);
 		if (!held) { //store the time the button was held in h_us
@@ -107,7 +113,7 @@ void loop() {
 	else {
 		//check to see if the button was just released
 		if (held) {
-			setNote();
+			nextNote();
 			held = false;
 		}
 
@@ -133,7 +139,7 @@ void loop() {
 void blink(byte n, byte pin) {
 	digitalWrite(PIN_LEDS[0], LOW);
 	digitalWrite(PIN_LEDS[1], LOW);
-	noTone(PIN_SPK);
+	vol.noTone();
 	for (byte i = 0; i <= n; ++i) {
 		digitalWrite(pin, HIGH);
 		delay(20);
@@ -142,35 +148,31 @@ void blink(byte n, byte pin) {
 	}
 }
 
-void setSpeaker() {
+void toggleSpeaker() {
 	speaker = !speaker;
 	if (speaker) {
-		tone(PIN_SPK, freqtone);
+		vol.tone(PIN_SPK, freqtone, VOL);
 	} else {
-		noTone(PIN_SPK);
+		vol.noTone();
 	}
 }
 
-void setNote() {
+void nextNote() {
 	++note;
 	if (note > 5) {
 		note = 0;
 	}
 	setTimings(frequencies[note] * FREQADJ);
 	freqtone = frequencies[note] * FREQADJ / 2.0;
-	//raise the tone frequency for low tones by octaves until it is in range for the arduino tone() function
-	while (freqtone <= 31) {
-		freqtone = freqtone * 2.0;
-	}
-	String display = String(note) + ", " + notes[note] + ", freq:"
-			+ String(frequencies[note], 4) + ", period:" + String(period)
-			+ ", phase:" + String(phase) + ", lit:" + String(litTime);
-	Serial.println(display);
+	Serial.println("note: " + String(note) + ", " + notes[note] + ", freq: "
+			+ String(frequencies[note], 4) + "Hz, period: " + String(period)
+			+ "us, phase: " + String(phase) + "us, lit: " + String(litTime)
+			+ "us");
 	blink(note, PIN_LEDS[0]);
 	if (speaker) {
-		tone(PIN_SPK, freqtone);
+		vol.tone(PIN_SPK, freqtone, VOL);
 	} else {
-		noTone(PIN_SPK);
+		vol.noTone();
 	}
 }
 
@@ -184,6 +186,7 @@ void setTimings(double f) {
 //Calculate note frequencies and store them in a two-dimensional array
 //The first index is the octave, the second is the note
 void freqTable() {
+	Serial.println("Calculating frequencies");
 	int step = 0;
 	for (int oct = 0; oct < 9; ++oct) {
 		for (int note = 0; note < 12; ++note) {
@@ -254,4 +257,8 @@ void setTuning() {
 		notes[5] = "E5";
 		break;
 	}
+	for (int i = 0; i < 6; ++i) {
+		Serial.print(notes[i] + " ");
+	}
+	Serial.print("\n");
 }
