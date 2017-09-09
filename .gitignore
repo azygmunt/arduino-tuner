@@ -1,0 +1,7 @@
+/Release/*
+/core/*
+/libraries/*
+.settings/*
+.cproject
+.ino.*
+.project
