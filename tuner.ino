@@ -6,7 +6,10 @@
 #include "Volume3.h"
 
 const double BASEFREQ = 440.0;
-const double FREQADJ = 1.004545454545; //Adjusted from 440 to a commercial tuner to compensate for arduino timing issues
+//Adjusted from 440 to a commercial tuner to compensate for arduino timing issues (442/440)
+//const double FREQADJ = 1.004545454545;
+const double FREQADJ = 441.0 / 440.0;
+//const double FREQADJ = 1.0;
 const double DUTY = .2;
 
 const byte PIN_LEDS[2] = { 2, 3 };
@@ -67,6 +70,7 @@ boolean held = false;
 
 //whether or not the speaker is on
 boolean speaker = false;
+boolean vol_dir = true;
 
 //initialize a OneButton instance
 OneButton button(PIN_BUT, true);
@@ -94,12 +98,21 @@ void loop() {
 		digitalWrite(PIN_LEDS[0], LOW);
 		digitalWrite(PIN_LEDS[1], LOW);
 		if (speaker) {
-			++spk_vol;
-			if (spk_vol > 1023) {
-				spk_vol = 0;
+			if (vol_dir) {
+				spk_vol += 3;
+				if (spk_vol > 1023) {
+					spk_vol = 1023;
+					vol_dir = false;
+				}
+			} else {
+				spk_vol -= 3;
+				if (spk_vol <= 0) {
+					spk_vol = 0;
+					vol_dir = true;
+				}
 			}
 			playTone();
-			delay(4);
+			delay(1);
 		} else {
 			if (!held) {
 				//store the time the button was held in h_us
@@ -128,19 +141,19 @@ void loop() {
 
 		//flash the lights based on the timings in cycle_us[]
 		//calculate the cycle timing points at the beginning of each cycle
-		if (current_us > cycle_us[3]) {
+		if (current_us >= cycle_us[3]) {
 			digitalWrite(PIN_LEDS[0], HIGH);
 			digitalWrite(PIN_LEDS[1], LOW);
 			cycle_us[0] = current_us + litTime;
 			cycle_us[1] = current_us + phase;
 			cycle_us[2] = cycle_us[1] + litTime;
 			cycle_us[3] = current_us + period;
-		} else if (current_us > cycle_us[2]) {
+		} else if (current_us >= cycle_us[2]) {
 			digitalWrite(PIN_LEDS[1], LOW);
-		} else if (current_us > cycle_us[1]) {
+		} else if (current_us >= cycle_us[1]) {
 			digitalWrite(PIN_LEDS[1], HIGH);
 			digitalWrite(PIN_LEDS[0], LOW);
-		} else if (current_us > cycle_us[0]) {
+		} else if (current_us >= cycle_us[0]) {
 			digitalWrite(PIN_LEDS[0], LOW);
 		}
 	}
