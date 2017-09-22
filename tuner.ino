@@ -5,12 +5,12 @@
 #include "OneButton.h"
 #include "Volume3.h"
 
-const double BASEFREQ = 440.0;
+const float BASEFREQ = 440.0;
 //Adjusted from 440 to a commercial tuner to compensate for arduino timing issues (442/440)
-//const double FREQADJ = 1.004545454545;
-const double FREQADJ = 441.0 / 440.0;
-//const double FREQADJ = 1.0;
-const double DUTY = .2;
+//const float FREQADJ = 1.004545454545;
+const float FREQADJ = 441.0 / 440.0;
+//const float FREQADJ = 1.0;
+const float DUTY = .2;
 
 const byte PIN_LEDS[2] = { 2, 3 };
 const byte PIN_BUT = 4;
@@ -36,13 +36,13 @@ String notes[6];
 const unsigned long TUNINGHOLD = 2 * 1000000;
 
 //array of note frequencies. First index is octave, second is note
-double freq[9][12];
+float freq[9][12];
 
 //the six frequencies in the current tuning
-double frequencies[6];
+float frequencies[6];
 
 //frequency of the tone to be played. Since the piezo buzzer clicks on transitions to both high and low this is half the note frequency
-double freqtone;
+float freqtone;
 
 //which note is being tuned
 byte note = 0;
@@ -202,7 +202,7 @@ void nextNote() {
 }
 
 //calculates the lengths of the period, half-cycle phase offset, and high duty cycle in microseconds from a given frequency in Hz
-void setTimings(double f) {
+void setTimings(float f) {
 	period = round(1000000.00 / f);
 	phase = round(period / 2.0);
 	litTime = round(double(phase) * DUTY);
