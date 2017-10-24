@@ -6,7 +6,7 @@
 #include "Volume3.h"
 
 const float BASEFREQ = 440.0;
-//Adjusted from 440 to a commercial tuner to compensate for arduino timing issues (442/440)
+//Adjusted from 440 to a commercial tuner to compensate for arduino timing issues
 //const float FREQADJ = 1.004545454545;
 const float FREQADJ = 441.0 / 440.0;
 //const float FREQADJ = 1.0;
@@ -18,11 +18,26 @@ const byte PIN_SPK = 9;
 int spk_vol = 512;
 
 //note names for array indices
-const byte N_C = 0, N_Cs = 1, N_D = 2, N_Ds = 3, N_E = 4, N_F = 5, N_Fs = 6,
-		N_G = 7, N_Gs = 8, N_A = 9, N_As = 10, N_B = 11;
+#define N_C 0
+#define N_Cs 1
+#define N_D 2
+#define N_Ds 3
+#define N_E 4
+#define N_F 5
+#define N_Fs 6
+#define N_G 7
+#define N_Gs 8
+#define N_A 9
+#define N_As 10
+#define N_B 11
 
 //Tuning names for array indices
-const byte T_STANDARD = 0, T_CPENT = 1, T_BASS = 2, T_OCT = 3;
+#define T_STANDARD 0
+#define T_CPENT 1
+#define T_BASS 2
+#define T_OCT 3
+
+#define NUM_TUNINGS 4
 
 //tuning and note names for display
 const String tunings[4] = { "Standard", "C Pentatonic", "Bass", "Octave" };
@@ -121,7 +136,7 @@ void loop() {
 			}
 			if (current_us > (h_us + TUNINGHOLD)) {
 				++tuning;
-				if (tuning >= sizeof(tunings) / sizeof(tunings[0])) {
+				if (tuning > NUM_TUNINGS) {
 					tuning = 0;
 				}
 				setTuning();
